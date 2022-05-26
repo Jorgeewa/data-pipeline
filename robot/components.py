@@ -1,4 +1,6 @@
 import numpy as np
+import boto3
+import json
 from typing import Callable, Dict
 import time, threading
 import datetime
@@ -29,13 +31,6 @@ class Battery:
         self.charge_time = charge_time
         
         
-        self.battery = 100
-
-    def dowork(self, callback: Callable):
-        '''
-            Battery has to reduce
-        '''
-        
     def charge(self, callback: Callable):
         '''
             Battery has to charge
@@ -53,6 +48,14 @@ class UploadData:
         self.speed = speed
         
     def upload(self, data):
+        boto3.setup_default_session(profile_name='private')
+        client = boto3.client('firehose')
+        client.put_record(
+            DeliveryStreamName="robot-sensor-data",
+            Record={
+                'Data': json.dumps(data)
+            },
+        )
         print(f'{data} has been uploaded')
 
 
@@ -83,18 +86,29 @@ class Robot:
         t=threading.Timer(self.battery.run_time, interval.cancel)
         t.start()
         t.join()
-        print("I am being blocked or not???")
+        self.upload(self.generate_end_of_round_params())
         return self.charge()
         
     def generate_params(self):
         data_to_upload = {
             'x': self.cordinates.generate_cordinate_x(),
             'y': self.cordinates.generate_cordinate_y(),
-            'timestamp': datetime.datetime.now(),
+            'timestamp': datetime.datetime.now().isoformat(),
             'robot_name': self.name
         }
         for name, sensor in self.sensors.items():
             data_to_upload[name] = sensor.generate_data()
+        return data_to_upload
+    
+    def generate_end_of_round_params(self):
+        data_to_upload = {
+            'x': -1,
+            'y': -1,
+            'timestamp': datetime.datetime.now().isoformat(),
+            'robot_name': self.name
+        }
+        for name, _ in self.sensors.items():
+            data_to_upload[name] = -1
         return data_to_upload
     
     
