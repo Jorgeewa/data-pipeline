@@ -107,20 +107,20 @@ def main():
                 receipt = message['ReceiptHandle']
                 bucket = response['Records'][0]['s3']['bucket']['name']
                 key = response['Records'][0]['s3']['object']['key']
-                response = Transform.download_from_s3(bucket, key)
-                humidity, temperature = Transform.parse(response)
+                response = transform.download_from_s3(bucket, key)
+                humidity, temperature = transform.parse(response)
                 
                 
                 bucket = 'robot-sensor-data-transformed'
                 date_now = datetime.datetime.now()
                 key = f'data/{date_now.date()}/{date_now}.csv'
                 humidity = humidity.to_csv(index=False)
-                Transform.put_in_s3(humidity, bucket, key)
+                transform.put_in_s3(humidity, bucket, key)
                 
                 key = f'temperature/{date_now.date()}/{date_now}.csv'
                 temperature = temperature.to_csv(index=False)
-                Transform.put_in_s3(temperature, bucket, key)
-                Transform.check_and_send_events(temperature)
+                transform.put_in_s3(temperature, bucket, key)
+                transform.check_and_send_events(temperature)
                 sqs.delete_message(QueueUrl=queue_url, ReceiptHandle=receipt)
         except:
             error = traceback.format_exc()
