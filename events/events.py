@@ -1,6 +1,7 @@
 import boto3
 import json
-from typing import Dict, List
+from typing import Dict, List, Any
+import traceback
 
 class RobotConfiguration:
     
@@ -25,12 +26,12 @@ class DynamoDb:
         TABLE_NAME = "data-pipeline-front"
         self.table = self.dynamodb.Table(TABLE_NAME)
         
-    def dynamo_db_upload(self, data):
+    def dynamo_db_upload(self, data: Dict):
         self.table.put_item(
             Item=data
         )
         
-    def dynamo_db_fetch_item(self, item):
+    def dynamo_db_fetch_item(self, item: str) -> Dict[str, Any]:
         response = self.table.get_item(
             Key={
                 'robot_name': item,
@@ -38,15 +39,15 @@ class DynamoDb:
         )
         return response
     
-    def check_if_exists(self, item):
+    def check_if_exists(self, item: str) -> bool:
         response = self.dynamo_db_fetch_item(item)
         return "Item" in response.keys()
     
-    def fetch_time(self, item):
+    def fetch_time(self, item: str) -> str:
         item =  self.dynamo_db_fetch_item(item)
         return item["Item"]["round"]["last_time"]
     
-    def update_latest_time(self, robot_name, last_time_val):
+    def update_latest_time(self, robot_name: str, last_time_val: str) -> None:
 
         return self.table.update_item(  
             Key={  
@@ -58,7 +59,7 @@ class DynamoDb:
             }  
         )
     
-    def update_graph(self, robot_name: str, x: int, y: int):
+    def update_graph(self, robot_name: str, x: int, y: int) -> None:
         return self.table.update_item(  
             Key={  
                 "robot_name": robot_name  
@@ -70,7 +71,7 @@ class DynamoDb:
             }  
         )
     
-    def update_map(self, robot_name: str, key: str, data: Dict[str, List[List]]):
+    def update_map(self, robot_name: str, key: str, data: Dict[str, List[List]]) -> None:
         return self.table.update_item(  
             Key={  
                 "robot_name": robot_name  
@@ -85,44 +86,48 @@ class DynamoDb:
             }  
         )
 
-    
-d = DynamoDb()
-
-res = d.dynamo_db_fetch_item("test")
-#res = d.update_map("test", "2022:03:03", [[1,3,4],[5,6,7]])
-print(res)
-    
-
-    
-    
-    #insert
-    
-    
-    #select
-    
-    
-    #update
-
 
 def main():
     # Create SQS client
+    boto3.setup_default_session(profile_name='private')
     sqs = boto3.client('sqs')
 
 
     queue_url = "https://sqs.eu-central-1.amazonaws.com/759163837233/events",
-
     # Long poll for message on provided SQS queue
-    response = sqs.receive_message(
-        QueueUrl=queue_url,
-        AttributeNames=[
-            'SentTimestamp'
-        ],
-        MaxNumberOfMessages=1,
-        MessageAttributeNames=[
-            'All'
-        ],
-        WaitTimeSeconds=20
-    )
+    while True:
+        response = sqs.receive_message(
+            QueueUrl=queue_url,
+            AttributeNames=[
+                'SentTimestamp'
+            ],
+            MaxNumberOfMessages=10,
+            MessageAttributeNames=[
+                'All'
+            ],
+            WaitTimeSeconds=20
+        )
+        try:
+            for message in response['Messages']:
+            
+                response = json.loads(message['Body'])
+                receipt = message['ReceiptHandle']
+                sqs.delete_message(QueueUrl=queue_url, ReceiptHandle=receipt)
+        except:
+            error = traceback.format_exc()
+            print(f"Failed because of {error}")
+            continue
+
+
+
+
+
+
+
+
+
+
+
 
 
 '''
