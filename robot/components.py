@@ -1,10 +1,12 @@
 import numpy as np
 import boto3
-import json
+import json, os
 from typing import Callable, Dict
 import time, threading
 import datetime
 from interval import SetInterval
+from dotenv import load_dotenv
+load_dotenv(".env")
 
 
 
@@ -45,19 +47,20 @@ class UploadData:
         '''
             Should connect with aws sdk to upload data to cloud
         '''
+        self.profile = os.getenv("profile")
+        self.delivery_stream = os.getenv("delivery_stream")
         self.speed = speed
         
     def upload(self, data):
-        boto3.setup_default_session(profile_name='private')
+        boto3.setup_default_session(profile_name=self.profile)
         client = boto3.client('firehose')
         client.put_record(
-            DeliveryStreamName="robot-sensor-data",
+            DeliveryStreamName=self.delivery_stream,
             Record={
                 'Data': json.dumps(data)
             },
         )
         print(f'{data} has been uploaded')
-
 
 class Sensor:
     
@@ -86,7 +89,7 @@ class Robot:
         t=threading.Timer(self.battery.run_time, interval.cancel)
         t.start()
         t.join()
-        self.upload(self.generate_end_of_round_params())
+        self.upload.upload(self.generate_end_of_round_params())
         return self.charge()
         
     def generate_params(self):
@@ -101,6 +104,7 @@ class Robot:
         return data_to_upload
     
     def generate_end_of_round_params(self):
+        print(f"********************** Creating end of a round for robot - {self.name} ************************")
         data_to_upload = {
             'x': -1,
             'y': -1,

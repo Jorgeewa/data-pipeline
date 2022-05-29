@@ -6,8 +6,8 @@ import threading
 
 
 def robot_one():
-    cordinates = Cordinates(10, 150)
-    battery = Battery(5 * 50 * 60, 2 * 60 * 60)
+    cordinates = Cordinates(10, 10)
+    battery = Battery(15 * 60, 5 * 60)
     upload = UploadData(1)
     sensor = {
         "temperature": Sensor("temperature", 10, 30),
@@ -20,8 +20,8 @@ def robot_one():
     
     
 def robot_two():
-    cordinates = Cordinates(20, 80)
-    battery = Battery(6 * 50 * 60, 3 * 60 * 60)
+    cordinates = Cordinates(20, 20)
+    battery = Battery(20 * 60, 8 * 60)
     upload = UploadData(1)
     sensor = {
         "temperature": Sensor("temperature", 10, 30),

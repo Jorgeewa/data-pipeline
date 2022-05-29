@@ -13,4 +13,4 @@ COPY . .
 
 ENV HOME /home/app
 
-CMD ["python", "main.py"]
+CMD ["python", "events.py"]
